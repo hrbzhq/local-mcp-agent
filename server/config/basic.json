@@ -1,0 +1,19 @@
+{
+  "mcp": {
+    "server": "http://localhost:8000",
+    "tools": [
+      "chat_with_model",
+      "list_available_models"
+    ],
+    "autoStart": false,
+    "maxTools": 10
+  },
+  "localModels": {
+    "apiUrl": "http://localhost:8000",
+    "mcpUrl": "http://localhost:8000/mcp",
+    "defaultModel": "auto",
+    "timeout": 30,
+    "maxTokens": 256
+  },
+  "description": "基础配置 - 最佳性能，最少工具数量"
+}

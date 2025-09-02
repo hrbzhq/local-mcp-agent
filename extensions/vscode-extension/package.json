@@ -1,0 +1,130 @@
+{
+  "name": "local-multi-model-gateway",
+  "displayName": "Local Multi-Model AI Gateway",
+  "description": "VSCode extension for interacting with local AI models through MCP protocol",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "AI",
+    "Machine Learning",
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:localModelsView",
+    "onCommand:localModels.chat",
+    "onCommand:localModels.collaborate",
+    "onCommand:mcp.listTools",
+    "onCommand:mcp.askTool"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "localModels.chat",
+        "title": "Chat with AI Model",
+        "category": "Local Models"
+      },
+      {
+        "command": "localModels.collaborate",
+        "title": "Collaborative Chat",
+        "category": "Local Models"
+      },
+      {
+        "command": "localModels.refresh",
+        "title": "Refresh Models",
+        "category": "Local Models",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "mcp.listTools",
+        "title": "List Tools",
+        "category": "MCP"
+      },
+      {
+        "command": "mcp.askTool",
+        "title": "Ask Tool",
+        "category": "MCP"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "localModelsView",
+          "name": "Local AI Models",
+          "icon": "$(robot)",
+          "contextualTitle": "Local AI Models"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "localModels.refresh",
+          "when": "view == localModelsView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "localModels.chat",
+          "when": "view == localModelsView && viewItem == model",
+          "group": "inline"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Local Multi-Model Gateway",
+      "properties": {
+        "localModels.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "URL of the local multi-model API server"
+        },
+        "localModels.defaultModel": {
+          "type": "string",
+          "default": "auto",
+          "description": "Default model to use (auto for smart routing)"
+        },
+        "localModels.timeout": {
+          "type": "number",
+          "default": 120,
+          "description": "Request timeout in seconds"
+        },
+        "localModels.maxTokens": {
+          "type": "number",
+          "default": 2048,
+          "description": "Maximum tokens for model responses"
+        },
+        "localModels.mcpUrl": {
+          "type": "string",
+          "default": "http://localhost:8000/mcp",
+          "description": "URL of the MCP server endpoint"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "@types/mocha": "^10.0.1",
+    "eslint": "^8.28.0",
+    "@typescript-eslint/eslint-plugin": "^5.57.1",
+    "@typescript-eslint/parser": "^5.57.1",
+    "typescript": "^4.9.4",
+    "@vscode/test-electron": "^2.2.3",
+    "mocha": "^10.2.0"
+  },
+  "dependencies": {
+    "axios": "^1.4.0"
+  }
+}
