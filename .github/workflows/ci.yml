@@ -1,5 +1,8 @@
 name: CI/CD Pipeline
 
+# note: small non-functional update to create PR (timestamp will show commit)
+name: CI/CD Pipeline
+
 on:
   push:
     branches: [ main, develop ]
