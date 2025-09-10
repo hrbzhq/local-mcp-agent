@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Environments
+env/
+venv/
+.env
+
+# VS Code
+.vscode/
+
+# Databases and logs
+*.db
+*.db-journal
+logs/
+workagent/mcp/*.db
+
+# Mac
+.DS_Store
+
+# Byte-compiled / build
+build/
+dist/
+
+# PyCharm
+.idea/
+
+# Coverage
+.coverage
+
+# Others
+*.log
+
+# Ignore system files
+Thumbs.db

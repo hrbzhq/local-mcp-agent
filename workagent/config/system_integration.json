@@ -1,0 +1,69 @@
+{
+  "components": {
+    "self_optimization_core": {
+      "path": "src.self_optimization_core",
+      "class": "SelfOptimizationCore",
+      "enabled": true,
+      "dependencies": [],
+      "description": "自主优化核心 - 系统的中枢，负责整体优化循环"
+    },
+    "learning_engine": {
+      "path": "src.learning_engine",
+      "class": "LearningEngine",
+      "enabled": true,
+      "dependencies": [],
+      "description": "学习引擎 - 记录经验并识别学习模式"
+    },
+    "decision_maker": {
+      "path": "src.decision_maker",
+      "class": "DecisionMaker",
+      "enabled": true,
+      "dependencies": [
+        "learning_engine"
+      ],
+      "description": "决策制定器 - 基于历史数据和当前上下文做出智能决策"
+    },
+    "resource_manager": {
+      "path": "src.resource_manager",
+      "class": "ResourceManager",
+      "enabled": true,
+      "dependencies": [],
+      "description": "资源管理器 - 监控和优化系统资源使用"
+    },
+    "safety_monitor": {
+      "path": "src.safety_monitor",
+      "class": "SafetyMonitor",
+      "enabled": true,
+      "dependencies": [],
+      "description": "安全监控器 - 确保系统安全通过规则基础监控"
+    },
+    "mcp_autonomous_optimizer": {
+      "path": "src.mcp_autonomous_optimizer",
+      "class": "MCPAutonomousOptimizer",
+      "enabled": false,
+      "dependencies": [
+        "learning_engine",
+        "decision_maker"
+      ],
+      "description": "MCP自主优化器 - 自主生成和优化MCP模块"
+    },
+    "command_center": {
+      "path": "src.command_center",
+      "class": "CommandCenter",
+      "enabled": true,
+      "dependencies": [
+        "learning_engine",
+        "decision_maker"
+      ],
+      "description": "参谋中心 - 多模型协调与智能决策"
+    }
+  },
+  "integration_settings": {
+    "auto_start": true,
+    "health_check_interval": 30,
+    "max_restart_attempts": 3,
+    "component_timeout": 60,
+    "system_name": "Autonomous Optimization System",
+    "version": "1.0.0"
+  }
+}

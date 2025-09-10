@@ -1,0 +1,182 @@
+{
+  "system": {
+    "name": "多模型智能Agent系统",
+    "version": "2.0.0",
+    "description": "基于多模型的智能Agent系统，支持Web界面、API接口和插件扩展",
+    "author": "AI Assistant",
+    "created_at": "2025-09-08"
+  },
+
+  "web_interface": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 5000,
+    "debug": false,
+    "secret_key": "your-secret-key-change-this",
+    "session_timeout": 3600
+  },
+
+  "api_server": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 8000,
+    "cors_origins": ["*"],
+    "rate_limit": "100/minute",
+    "api_key_required": false
+  },
+
+  "models": {
+    "ollama_host": "http://localhost:11434",
+    "default_model": "qwen3",
+    "available_models": {
+      "qwen3": {
+        "name": "qwen3:0.6b",
+        "description": "通义千问3模型",
+        "max_tokens": 2048,
+        "temperature": 0.7
+      },
+      "gemma3": {
+        "name": "gemma3:270m",
+        "description": "Google Gemma3模型",
+        "max_tokens": 2048,
+        "temperature": 0.7
+      },
+      "qwen_coder": {
+        "name": "qwen2.5-coder:0.5b",
+        "description": "通义千问Coder模型",
+        "max_tokens": 2048,
+        "temperature": 0.8
+      },
+      "deepseek_r1": {
+        "name": "deepseek-r1:1.5b",
+        "description": "DeepSeek R1模型",
+        "max_tokens": 2048,
+        "temperature": 0.6
+      }
+    }
+  },
+
+  "plugins": {
+    "enabled_plugins": [
+      "web_scraper",
+      "file_processor",
+      "database",
+      "notification",
+      "api_gateway"
+    ],
+    "plugin_configs": {
+      "web_scraper": {
+        "timeout": 30,
+        "max_retries": 3,
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      },
+      "file_processor": {
+        "max_file_size": 10485760,
+        "allowed_extensions": [".txt", ".json", ".csv", ".pdf", ".docx", ".md"],
+        "encoding": "utf-8"
+      },
+      "database": {
+        "db_path": "agent_data.db",
+        "backup_interval": 86400,
+        "max_connections": 10
+      },
+      "notification": {
+        "enable_desktop": true,
+        "enable_email": false,
+        "enable_webhook": false,
+        "email": {
+          "server": "smtp.gmail.com",
+          "port": 587,
+          "username": "",
+          "password": "",
+          "default_recipients": []
+        },
+        "webhook": {
+          "urls": []
+        }
+      },
+      "api_gateway": {
+        "default_timeout": 30,
+        "max_retries": 3,
+        "enable_caching": true,
+        "cache_ttl": 300,
+        "apis": {
+          "github": {
+            "base_url": "https://api.github.com",
+            "auth": {
+              "type": "bearer",
+              "token": ""
+            },
+            "rate_limit": {
+              "requests": 60,
+              "window": 60
+            }
+          },
+          "weather": {
+            "base_url": "https://api.weatherapi.com/v1",
+            "timeout": 10
+          }
+        }
+      }
+    }
+  },
+
+  "database": {
+    "type": "sqlite",
+    "path": "agent_data.db",
+    "backup": {
+      "enabled": true,
+      "interval": 86400,
+      "max_backups": 7
+    }
+  },
+
+  "logging": {
+    "level": "INFO",
+    "file": "logs/agent.log",
+    "max_size": 10485760,
+    "backup_count": 5,
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  },
+
+  "performance": {
+    "monitoring_enabled": true,
+    "metrics_interval": 60,
+    "alert_thresholds": {
+      "cpu_percent": 80,
+      "memory_percent": 85,
+      "disk_percent": 90
+    },
+    "history_retention_days": 30
+  },
+
+  "security": {
+    "enable_https": false,
+    "ssl_cert": "",
+    "ssl_key": "",
+    "api_keys": [],
+    "cors_enabled": true,
+    "cors_origins": ["*"]
+  },
+
+  "scheduler": {
+    "enabled": true,
+    "jobs": [
+      {
+        "name": "optimize_mcp",
+        "interval": "1h",
+        "enabled": true
+      },
+      {
+        "name": "backup_database",
+        "interval": "24h",
+        "enabled": true
+      },
+      {
+        "name": "cleanup_logs",
+        "interval": "7d",
+        "enabled": true
+      }
+    ]
+  }
+}

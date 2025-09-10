@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多模型智能Agent系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .sidebar .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        .model-card {
+            transition: transform 0.3s;
+        }
+        .model-card:hover {
+            transform: translateY(-5px);
+        }
+        .status-online {
+            color: #28a745;
+        }
+        .status-offline {
+            color: #dc3545;
+        }
+        .chat-message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .chat-message.user {
+            background-color: #007bff;
+            color: white;
+            margin-left: 20%;
+        }
+        .chat-message.agent {
+            background-color: #f8f9fa;
+            margin-right: 20%;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="d-flex flex-column p-3">
+                    <h5 class="mb-4">
+                        <i class="bi bi-robot"></i> 智能Agent
+                    </h5>
+                    <nav class="nav nav-pills flex-column">
+                        <a class="nav-link active" href="#dashboard" data-page="dashboard">
+                            <i class="bi bi-speedometer2"></i> 仪表板
+                        </a>
+                        <a class="nav-link" href="#chat" data-page="chat">
+                            <i class="bi bi-chat-dots"></i> 对话
+                        </a>
+                        <a class="nav-link" href="#models" data-page="models">
+                            <i class="bi bi-cpu"></i> 模型管理
+                        </a>
+                        <a class="nav-link" href="#plugins" data-page="plugins">
+                            <i class="bi bi-plug"></i> 插件中心
+                        </a>
+                        <a class="nav-link" href="#history" data-page="history">
+                            <i class="bi bi-clock-history"></i> 历史记录
+                        </a>
+                        <a class="nav-link" href="#performance" data-page="performance">
+                            <i class="bi bi-graph-up"></i> 性能监控
+                        </a>
+                        <a class="nav-link" href="#settings" data-page="settings">
+                            <i class="bi bi-gear"></i> 设置
+                        </a>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- 主内容区 -->
+            <div class="col-md-9 col-lg-10 px-4 py-4">
+                <!-- 页面标题 -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 id="page-title">仪表板</h2>
+                    <div class="d-flex align-items-center">
+                        <span class="me-2" id="connection-status">
+                            <i class="bi bi-circle-fill status-online"></i> 在线
+                        </span>
+                        <button class="btn btn-outline-primary btn-sm" id="refresh-btn">
+                            <i class="bi bi-arrow-clockwise"></i> 刷新
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 页面内容容器 -->
+                <div id="page-content">
+                    <!-- 仪表板内容 -->
+                    <div id="dashboard-content" class="page-section">
+                        <div class="row">
+                            <!-- 系统状态卡片 -->
+                            <div class="col-md-4 mb-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <i class="bi bi-activity"></i> 系统状态
+                                        </h5>
+                                        <div id="system-status">
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <span>模型服务</span>
+                                                <span class="status-online">● 在线</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <span>MCP管理器</span>
+                                                <span class="status-online">● 在线</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <span>性能监控</span>
+                                                <span class="status-online">● 在线</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <span>插件系统</span>
+                                                <span class="status-online">● 在线</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 模型状态卡片 -->
+                            <div class="col-md-4 mb-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <i class="bi bi-cpu"></i> 模型状态
+                                        </h5>
+                                        <div id="model-status">
+                                            <p class="text-muted">加载中...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 性能指标卡片 -->
+                            <div class="col-md-4 mb-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <i class="bi bi-graph-up"></i> 性能指标
+                                        </h5>
+                                        <div id="performance-metrics">
+                                            <p class="text-muted">加载中...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 图表区域 -->
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">任务执行趋势</h5>
+                                        <canvas id="taskChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">模型使用分布</h5>
+                                        <canvas id="modelChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 对话页面 -->
+                    <div id="chat-content" class="page-section" style="display: none;">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <div id="chat-messages" class="mb-3" style="height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 5px; padding: 10px;">
+                                            <div class="chat-message agent">
+                                                <strong>Agent:</strong> 你好！我是多模型智能助手，有什么可以帮助您的吗？
+                                            </div>
+                                        </div>
+                                        <div class="input-group">
+                                            <select class="form-select" id="model-select" style="max-width: 150px;">
+                                                <option value="qwen3">Qwen3</option>
+                                                <option value="gemma3">Gemma3</option>
+                                                <option value="qwen_coder">Qwen Coder</option>
+                                                <option value="deepseek_r1">DeepSeek R1</option>
+                                            </select>
+                                            <input type="text" class="form-control" id="message-input" placeholder="输入您的问题...">
+                                            <button class="btn btn-primary" id="send-btn">
+                                                <i class="bi bi-send"></i> 发送
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h5>对话设置</h5>
+                                        <div class="mb-3">
+                                            <label class="form-label">温度 (Temperature)</label>
+                                            <input type="range" class="form-range" id="temperature-slider" min="0" max="1" step="0.1" value="0.7">
+                                            <span id="temperature-value">0.7</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">最大上下文长度</label>
+                                            <input type="number" class="form-control" id="context-length" value="2048">
+                                        </div>
+                                        <button class="btn btn-outline-secondary w-100" id="clear-chat-btn">
+                                            <i class="bi bi-trash"></i> 清空对话
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 模型管理页面 -->
+                    <div id="models-content" class="page-section" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h5>模型管理</h5>
+                                    <button class="btn btn-primary btn-sm" id="refresh-models">
+                                        <i class="bi bi-arrow-clockwise"></i> 刷新
+                                    </button>
+                                </div>
+
+                                <div id="models-list" class="row">
+                                    <!-- 模型卡片将在这里动态生成 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="plugins-content" class="page-section" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h5>插件中心</h5>
+                                    <div>
+                                        <button class="btn btn-success btn-sm me-2" id="reload-all-plugins">
+                                            <i class="bi bi-arrow-clockwise"></i> 重新加载全部
+                                        </button>
+                                        <button class="btn btn-primary btn-sm" id="refresh-plugins">
+                                            <i class="bi bi-arrow-clockwise"></i> 刷新
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- 插件统计 -->
+                                <div class="row mb-4" id="plugin-stats">
+                                    <!-- 统计信息将在这里动态生成 -->
+                                </div>
+
+                                <!-- 插件列表 -->
+                                <div id="plugins-list" class="row">
+                                    <!-- 插件卡片将在这里动态生成 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="history-content" class="page-section" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h5>历史记录</h5>
+                                    <div>
+                                        <button class="btn btn-outline-danger btn-sm me-2" id="cleanup-history">
+                                            <i class="bi bi-trash"></i> 清理旧记录
+                                        </button>
+                                        <button class="btn btn-outline-primary btn-sm me-2" id="export-history">
+                                            <i class="bi bi-download"></i> 导出
+                                        </button>
+                                        <button class="btn btn-primary btn-sm" id="refresh-history">
+                                            <i class="bi bi-arrow-clockwise"></i> 刷新
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- 搜索栏 -->
+                                <div class="card mb-4">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-8">
+                                                <input type="text" class="form-control" id="history-search" placeholder="搜索历史记录...">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <button class="btn btn-outline-secondary" id="search-history-btn">
+                                                    <i class="bi bi-search"></i> 搜索
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 统计信息 -->
+                                <div class="row mb-4" id="history-stats">
+                                    <!-- 统计卡片将在这里动态生成 -->
+                                </div>
+
+                                <!-- 历史记录列表 -->
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div id="history-list">
+                                            <!-- 历史记录将在这里动态生成 -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="performance-content" class="page-section" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0"><i class="bi bi-graph-up"></i> 性能监控</h5>
+                                        <div>
+                                            <button id="start-monitoring" class="btn btn-success btn-sm">
+                                                <i class="bi bi-play-fill"></i> 启动监控
+                                            </button>
+                                            <button id="stop-monitoring" class="btn btn-danger btn-sm">
+                                                <i class="bi bi-stop-fill"></i> 停止监控
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <!-- 系统健康评分 -->
+                                        <div class="row mb-4">
+                                            <div class="col-md-3">
+                                                <div class="card bg-primary text-white">
+                                                    <div class="card-body text-center">
+                                                        <h3 id="health-score">0</h3>
+                                                        <p class="mb-0">系统健康评分</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="card bg-success text-white">
+                                                    <div class="card-body text-center">
+                                                        <h4 id="cpu-percent">0%</h4>
+                                                        <p class="mb-0">CPU使用率</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="card bg-info text-white">
+                                                    <div class="card-body text-center">
+                                                        <h4 id="memory-percent">0%</h4>
+                                                        <p class="mb-0">内存使用率</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="card bg-warning text-white">
+                                                    <div class="card-body text-center">
+                                                        <h4 id="disk-percent">0%</h4>
+                                                        <p class="mb-0">磁盘使用率</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- 性能图表 -->
+                                        <div class="row mb-4">
+                                            <div class="col-md-12">
+                                                <div class="card">
+                                                    <div class="card-header">
+                                                        <h6>性能趋势图</h6>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <canvas id="performance-chart" width="400" height="200"></canvas>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- 详细指标 -->
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="card">
+                                                    <div class="card-header">
+                                                        <h6>系统资源详情</h6>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div id="system-details">
+                                                            <p>正在加载...</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="card">
+                                                    <div class="card-header">
+                                                        <h6>最近告警</h6>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div id="alerts-list">
+                                                            <p>暂无告警</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- 性能报告 -->
+                                        <div class="row mt-4">
+                                            <div class="col-md-12">
+                                                <div class="card">
+                                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                                        <h6>性能报告</h6>
+                                                        <select id="report-period" class="form-select form-select-sm" style="width: auto;">
+                                                            <option value="15">最近15分钟</option>
+                                                            <option value="60" selected>最近1小时</option>
+                                                            <option value="360">最近6小时</option>
+                                                            <option value="1440">最近24小时</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div id="performance-report">
+                                                            <p>正在生成报告...</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="settings-content" class="page-section" style="display: none;">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5>系统设置</h5>
+                                <p>设置功能正在开发中...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // WebSocket连接
+        const socket = io();
+
+        socket.on('connect', function() {
+            console.log('Connected to server');
+            updateConnectionStatus(true);
+        });
+
+        socket.on('disconnect', function() {
+            console.log('Disconnected from server');
+            updateConnectionStatus(false);
+        });
+
+        socket.on('system_status', function(data) {
+            updateSystemStatus(data);
+        });
+
+        socket.on('error', function(data) {
+            console.error('Server error:', data.message);
+            showAlert('错误: ' + data.message, 'danger');
+        });
+
+        // 页面切换
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const page = this.getAttribute('data-page');
+
+                // 更新导航状态
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+
+                // 更新页面标题
+                const titles = {
+                    'dashboard': '仪表板',
+                    'chat': '对话',
+                    'models': '模型管理',
+                    'plugins': '插件中心',
+                    'history': '历史记录',
+                    'performance': '性能监控',
+                    'settings': '设置'
+                };
+                document.getElementById('page-title').textContent = titles[page];
+
+                // 切换页面内容
+                document.querySelectorAll('.page-section').forEach(section => {
+                    section.style.display = 'none';
+                });
+                document.getElementById(page + '-content').style.display = 'block';
+
+                // 如果是仪表板，开始监控
+                if (page === 'dashboard') {
+                    socket.emit('start_monitoring');
+                }
+            });
+        });
+
+        // 发送消息
+        document.getElementById('send-btn').addEventListener('click', sendMessage);
+        document.getElementById('message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // 清空对话
+        document.getElementById('clear-chat-btn').addEventListener('click', function() {
+            document.getElementById('chat-messages').innerHTML = '';
+        });
+
+        // 温度滑块
+        document.getElementById('temperature-slider').addEventListener('input', function() {
+            document.getElementById('temperature-value').textContent = this.value;
+        });
+
+        // 刷新按钮
+        document.getElementById('refresh-btn').addEventListener('click', function() {
+            loadSystemData();
+        });
+
+        // 模型管理功能
+        document.getElementById('refresh-models')?.addEventListener('click', loadModels);
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('test-model-btn')) {
+                const modelName = e.target.getAttribute('data-model');
+                testModel(modelName);
+            }
+        });
+
+        // 插件中心功能
+        document.getElementById('refresh-plugins')?.addEventListener('click', loadPlugins);
+        document.getElementById('reload-all-plugins')?.addEventListener('click', reloadAllPlugins);
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('reload-plugin-btn')) {
+                const pluginName = e.target.getAttribute('data-plugin');
+                reloadPlugin(pluginName);
+            }
+        });
+
+        // 历史记录功能
+        document.getElementById('refresh-history')?.addEventListener('click', loadHistory);
+        document.getElementById('search-history-btn')?.addEventListener('click', searchHistory);
+        document.getElementById('export-history')?.addEventListener('click', exportHistory);
+        document.getElementById('cleanup-history')?.addEventListener('click', cleanupHistory);
+
+        // 页面切换时加载对应数据
+        document.querySelectorAll('.nav-link[data-page]').forEach(link => {
+            link.addEventListener('click', function() {
+                const page = this.getAttribute('data-page');
+                if (page === 'models') {
+                    loadModels();
+                } else if (page === 'plugins') {
+                    loadPlugins();
+                } else if (page === 'history') {
+                    loadHistory();
+                }
+            });
+        });
+
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const model = document.getElementById('model-select').value;
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // 添加用户消息
+            addMessage('user', message);
+            input.value = '';
+
+            // 显示加载状态
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'chat-message agent';
+            loadingDiv.innerHTML = '<div class="loading"></div> 正在思考...';
+            document.getElementById('chat-messages').appendChild(loadingDiv);
+
+            // 发送请求（使用后端实际的 /api/tasks 路由）
+            fetch('/api/tasks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    task: message,
+                    model: model
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 移除加载状态
+                loadingDiv.remove();
+
+                // 后端可能返回 { error: ... } 或 { result: ... } 或其他格式，优先展示可用字段
+                if (data.error) {
+                    addMessage('agent', '错误: ' + data.error);
+                } else if (data.result) {
+                    addMessage('agent', data.result);
+                } else if (data.response) {
+                    addMessage('agent', data.response);
+                } else {
+                    addMessage('agent', JSON.stringify(data));
+                }
+            })
+            .catch(error => {
+                loadingDiv.remove();
+                addMessage('agent', '网络错误: ' + error.message);
+            });
+        }
+
+        function addMessage(type, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${type}`;
+            messageDiv.innerHTML = `<strong>${type === 'user' ? '您' : 'Agent'}:</strong> ${content}`;
+            document.getElementById('chat-messages').appendChild(messageDiv);
+
+            // 滚动到底部
+            const messagesDiv = document.getElementById('chat-messages');
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusElement = document.getElementById('connection-status');
+            if (connected) {
+                statusElement.innerHTML = '<i class="bi bi-circle-fill status-online"></i> 在线';
+            } else {
+                statusElement.innerHTML = '<i class="bi bi-circle-fill status-offline"></i> 离线';
+            }
+        }
+
+        function updateSystemStatus(data) {
+            // 更新模型状态（兼容后端返回的数组或映射）
+            const modelStatusDiv = document.getElementById('model-status');
+            if (!data.models) {
+                modelStatusDiv.innerHTML = '<p class="text-muted">无模型数据</p>';
+            } else {
+                let html = '';
+
+                // 如果后端返回的是数组（/api/models 风格），逐项处理
+                if (Array.isArray(data.models)) {
+                    data.models.forEach(m => {
+                        const status = (m.status || '').toString();
+                        const statusClass = status === 'online' ? 'status-online' : 'status-offline';
+                        const statusText = status === 'online' ? '在线' : (status === 'offline' ? '离线' : status);
+                        html += `<div class="d-flex justify-content-between mb-2">
+                            <span>${m.display_name || m.name || m.id}</span>
+                            <span class="${statusClass}">● ${statusText}</span>
+                        </div>`;
+                    });
+                } else {
+                    // 如果后端返回的是对象映射 { name: status }
+                    Object.entries(data.models).forEach(([model, status]) => {
+                        const s = (status || '').toString();
+                        const statusClass = s === 'online' ? 'status-online' : 'status-offline';
+                        const statusText = s === 'online' ? '在线' : (s === 'offline' ? '离线' : s);
+                        html += `<div class="d-flex justify-content-between mb-2">
+                            <span>${model}</span>
+                            <span class="${statusClass}">● ${statusText}</span>
+                        </div>`;
+                    });
+                }
+
+                modelStatusDiv.innerHTML = html;
+            }
+
+            // 更新性能指标（使用嵌套属性，避免显示 [object Object]）
+            const performanceDiv = document.getElementById('performance-metrics');
+            if (data.performance) {
+                const cpuPct = data.performance.cpu && data.performance.cpu.percent !== undefined ? data.performance.cpu.percent : (data.performance.cpu || 'N/A');
+                const memPct = data.performance.memory && data.performance.memory.percent !== undefined ? data.performance.memory.percent : (data.performance.memory || 'N/A');
+                const tasks = data.performance.tasks !== undefined ? data.performance.tasks : 0;
+
+                performanceDiv.innerHTML = `
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>CPU使用率</span>
+                        <span>${typeof cpuPct === 'number' ? cpuPct.toFixed(1) : cpuPct}%</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>内存使用率</span>
+                        <span>${typeof memPct === 'number' ? memPct.toFixed(1) : memPct}%</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>活跃任务</span>
+                        <span>${tasks}</span>
+                    </div>
+                `;
+            }
+        }
+
+        function loadSystemData() {
+            // 加载系统状态
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    updateSystemStatus(data);
+                })
+                .catch(error => {
+                    console.error('Failed to load system data:', error);
+                });
+        }
+
+        // 模型管理功能
+        function loadModels() {
+            fetch('/api/models')
+                .then(response => response.json())
+                .then(data => {
+                    displayModels(data.models);
+                })
+                .catch(error => {
+                    console.error('Failed to load models:', error);
+                    showAlert('加载模型列表失败', 'danger');
+                });
+        }
+
+        function displayModels(models) {
+            const container = document.getElementById('models-list');
+            container.innerHTML = '';
+
+            models.forEach(model => {
+                const statusClass = model.status === 'online' ? 'success' : 'danger';
+                const statusText = model.status === 'online' ? '在线' : '离线';
+
+                const modelCard = `
+                    <div class="col-md-6 mb-4">
+                        <div class="card model-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h5 class="card-title">${model.display_name}</h5>
+                                        <p class="card-text text-muted">${model.description}</p>
+                                    </div>
+                                    <span class="badge bg-${statusClass}">${statusText}</span>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <small class="text-muted">模型大小</small>
+                                        <div>${model.size}</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">温度</small>
+                                        <div>${model.temperature}</div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <small class="text-muted">能力</small>
+                                    <div>
+                                        ${model.capabilities.map(cap => `<span class="badge bg-light text-dark me-1">${cap}</span>`).join('')}
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm test-model-btn" data-model="${model.id}">
+                                        <i class="bi bi-play"></i> 测试
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="showModelConfig('${model.id}')">
+                                        <i class="bi bi-gear"></i> 配置
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += modelCard;
+            });
+        }
+
+        function testModel(modelName) {
+            const btn = document.querySelector(`[data-model="${modelName}"]`);
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-hourglass"></i> 测试中...';
+            btn.disabled = true;
+
+            fetch(`/api/models/${modelName}/test`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert(`模型 ${modelName} 测试成功 (${data.execution_time.toFixed(2)}s)`, 'success');
+                    } else {
+                        showAlert(`模型 ${modelName} 测试失败: ${data.response}`, 'danger');
+                    }
+                })
+                .catch(error => {
+                    showAlert(`测试失败: ${error.message}`, 'danger');
+                })
+                .finally(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+        }
+
+        // 插件中心功能
+        function loadPlugins() {
+            fetch('/api/plugins')
+                .then(response => response.json())
+                .then(data => {
+                    displayPluginStats(data.stats);
+                    displayPlugins(data.plugins);
+                })
+                .catch(error => {
+                    console.error('Failed to load plugins:', error);
+                    showAlert('加载插件列表失败', 'danger');
+                });
+        }
+
+        function displayPluginStats(stats) {
+            const container = document.getElementById('plugin-stats');
+            container.innerHTML = `
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-primary">${stats.total_plugins}</h3>
+                            <p class="text-muted">总插件数</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-success">${stats.loaded_plugins}</h3>
+                            <p class="text-muted">已加载</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-info">${stats.available_plugins}</h3>
+                            <p class="text-muted">可用插件</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-warning">${Object.keys(stats.plugin_usage).length}</h3>
+                            <p class="text-muted">使用中</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayPlugins(plugins) {
+            const container = document.getElementById('plugins-list');
+            container.innerHTML = '';
+
+            plugins.forEach(plugin => {
+                const statusClass = plugin.status === 'active' ? 'success' : 'secondary';
+                const statusText = plugin.status === 'active' ? '活跃' : '未激活';
+
+                const pluginCard = `
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h5 class="card-title">${plugin.name}</h5>
+                                        <p class="card-text text-muted">${plugin.description}</p>
+                                    </div>
+                                    <span class="badge bg-${statusClass}">${statusText}</span>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <small class="text-muted">版本</small>
+                                        <div>${plugin.version}</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">使用次数</small>
+                                        <div>${plugin.usage_count || 0}</div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm reload-plugin-btn" data-plugin="${plugin.name}">
+                                        <i class="bi bi-arrow-clockwise"></i> 重新加载
+                                    </button>
+                                    <button class="btn btn-outline-info btn-sm" onclick="showPluginInfo('${plugin.name}')">
+                                        <i class="bi bi-info-circle"></i> 详情
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += pluginCard;
+            });
+        }
+
+        function reloadPlugin(pluginName) {
+            fetch(`/api/plugins/${pluginName}/reload`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message) {
+                        showAlert(data.message, 'success');
+                        loadPlugins(); // 重新加载插件列表
+                    } else {
+                        showAlert(data.error, 'danger');
+                    }
+                })
+                .catch(error => {
+                    showAlert(`重新加载失败: ${error.message}`, 'danger');
+                });
+        }
+
+        function reloadAllPlugins() {
+            fetch('/api/plugins/reload-all', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    const successCount = Object.values(data.results).filter(Boolean).length;
+                    const totalCount = Object.keys(data.results).length;
+                    showAlert(`重新加载完成: ${successCount}/${totalCount} 个插件成功`, 'success');
+                    loadPlugins();
+                })
+                .catch(error => {
+                    showAlert(`批量重新加载失败: ${error.message}`, 'danger');
+                });
+        }
+
+        // 历史记录功能
+        function loadHistory() {
+            // 加载统计信息
+            fetch('/api/history/stats')
+                .then(response => response.json())
+                .then(data => {
+                    displayHistoryStats(data);
+                })
+                .catch(error => {
+                    console.error('Failed to load history stats:', error);
+                });
+
+            // 加载历史记录
+            fetch('/api/history?limit=20')
+                .then(response => response.json())
+                .then(data => {
+                    displayHistory(data.history);
+                })
+                .catch(error => {
+                    console.error('Failed to load history:', error);
+                    showAlert('加载历史记录失败', 'danger');
+                });
+        }
+
+        function displayHistoryStats(stats) {
+            const container = document.getElementById('history-stats');
+            container.innerHTML = `
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-primary">${stats.total_tasks}</h3>
+                            <p class="text-muted">总任务数</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-success">${stats.successful_tasks}</h3>
+                            <p class="text-muted">成功任务</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-info">${stats.success_rate.toFixed(1)}%</h3>
+                            <p class="text-muted">成功率</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-warning">${stats.avg_execution_time.toFixed(2)}s</h3>
+                            <p class="text-muted">平均耗时</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayHistory(history) {
+            const container = document.getElementById('history-list');
+            container.innerHTML = '';
+
+            if (history.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted py-4">暂无历史记录</div>';
+                return;
+            }
+
+            history.forEach(task => {
+                const statusClass = task.success ? 'success' : 'danger';
+                const statusText = task.success ? '成功' : '失败';
+
+                const taskCard = `
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="flex-grow-1">
+                                    <h6 class="card-title mb-1">${task.task_input.substring(0, 100)}${task.task_input.length > 100 ? '...' : ''}</h6>
+                                    <small class="text-muted">
+                                        ${task.created_at} • ${task.model_used || '未知模型'} • ${task.execution_time ? task.execution_time.toFixed(2) + 's' : '未知耗时'}
+                                    </small>
+                                </div>
+                                <span class="badge bg-${statusClass}">${statusText}</span>
+                            </div>
+
+                            ${task.task_type ? `<div class="mb-2"><small class="text-muted">类型: ${task.task_type}</small></div>` : ''}
+                            ${task.complexity ? `<div class="mb-2"><small class="text-muted">复杂度: ${task.complexity}</small></div>` : ''}
+
+                            ${task.result ? `
+                                <div class="mb-2">
+                                    <small class="text-muted">结果:</small>
+                                    <div class="mt-1">${task.result.substring(0, 200)}${task.result.length > 200 ? '...' : ''}</div>
+                                </div>
+                            ` : ''}
+
+                            ${task.error_message ? `
+                                <div class="alert alert-danger py-2">
+                                    <small>${task.error_message}</small>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += taskCard;
+            });
+        }
+
+        function searchHistory() {
+            const query = document.getElementById('history-search').value.trim();
+            if (!query) {
+                loadHistory();
+                return;
+            }
+
+            fetch(`/api/history/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    displayHistory(data.results);
+                })
+                .catch(error => {
+                    showAlert('搜索失败', 'danger');
+                });
+        }
+
+        function exportHistory() {
+            const format = 'json'; // 可以扩展为选择格式
+            window.open(`/api/history/export?format=${format}`, '_blank');
+        }
+
+        function cleanupHistory() {
+            if (!confirm('确定要清理30天前的历史记录吗？')) {
+                return;
+            }
+
+            fetch('/api/history/cleanup', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    showAlert(data.message, 'success');
+                    loadHistory();
+                })
+                .catch(error => {
+                    showAlert('清理失败', 'danger');
+                });
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.container-fluid').prepend(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSystemData();
+            socket.emit('start_monitoring');
+        });
+
+        // 性能监控相关变量
+        let performanceChart = null;
+        let performanceData = {
+            labels: [],
+            cpu: [],
+            memory: [],
+            disk: []
+        };
+        let performanceUpdateInterval = null; // 性能更新定时器
+        let isMonitoringActive = false; // 监控是否激活
+        let userActivityTimeout = null; // 用户活动超时定时器
+        const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5分钟无活动则停止监控
+
+        // 启动性能监控
+        document.getElementById('start-monitoring').addEventListener('click', function() {
+            fetch('/api/performance/start', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    showAlert(data.message, 'success');
+                    startPerformanceUpdates();
+                    isMonitoringActive = true;
+                    resetUserActivityTimer();
+                })
+                .catch(error => {
+                    console.error('Failed to start monitoring:', error);
+                    showAlert('启动监控失败', 'danger');
+                });
+        });
+
+        // 停止性能监控
+        document.getElementById('stop-monitoring').addEventListener('click', function() {
+            stopPerformanceUpdates();
+            fetch('/api/performance/stop', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    showAlert(data.message, 'success');
+                    isMonitoringActive = false;
+                })
+                .catch(error => {
+                    console.error('Failed to stop monitoring:', error);
+                    showAlert('停止监控失败', 'danger');
+                });
+        });
+
+        // 报告周期变化
+        document.getElementById('report-period').addEventListener('change', function() {
+            if (isMonitoringActive) {
+                loadPerformanceReport();
+            }
+        });
+
+        // 启动性能数据更新
+        function startPerformanceUpdates() {
+            // 清除之前的定时器
+            if (performanceUpdateInterval) {
+                clearInterval(performanceUpdateInterval);
+            }
+
+            // 立即加载一次数据
+            loadPerformanceData();
+
+            // 设置定时器，每5秒更新一次（减少频率以节省资源）
+            performanceUpdateInterval = setInterval(loadPerformanceData, 5000);
+
+            console.log('性能监控已启动');
+        }
+
+        // 停止性能数据更新
+        function stopPerformanceUpdates() {
+            if (performanceUpdateInterval) {
+                clearInterval(performanceUpdateInterval);
+                performanceUpdateInterval = null;
+            }
+            isMonitoringActive = false;
+            console.log('性能监控已停止');
+        }
+
+        // 重置用户活动定时器
+        function resetUserActivityTimer() {
+            if (userActivityTimeout) {
+                clearTimeout(userActivityTimeout);
+            }
+
+            userActivityTimeout = setTimeout(() => {
+                if (isMonitoringActive) {
+                    console.log('检测到用户无活动，自动停止性能监控');
+                    stopPerformanceUpdates();
+                    showAlert('由于长时间无活动，已自动停止性能监控', 'info');
+                }
+            }, INACTIVITY_TIMEOUT);
+        }
+
+        // 用户活动事件监听
+        function setupUserActivityListeners() {
+            const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+
+            events.forEach(event => {
+                document.addEventListener(event, () => {
+                    if (isMonitoringActive) {
+                        resetUserActivityTimer();
+                    }
+                }, { passive: true });
+            });
+        }
+
+        // 页面可见性变化检测
+        function setupVisibilityChangeListener() {
+            let hidden, visibilityChange;
+
+            if (typeof document.hidden !== "undefined") {
+                hidden = "hidden";
+                visibilityChange = "visibilitychange";
+            } else if (typeof document.msHidden !== "undefined") {
+                hidden = "msHidden";
+                visibilityChange = "msvisibilitychange";
+            } else if (typeof document.webkitHidden !== "undefined") {
+                hidden = "webkitHidden";
+                visibilityChange = "webkitvisibilitychange";
+            }
+
+            if (typeof document.addEventListener !== "undefined" && typeof hidden !== "undefined") {
+                document.addEventListener(visibilityChange, function() {
+                    if (document[hidden]) {
+                        // 页面不可见，停止监控
+                        if (isMonitoringActive) {
+                            console.log('页面不可见，暂停性能监控');
+                            stopPerformanceUpdates();
+                        }
+                    } else {
+                        // 页面重新可见，如果之前在监控则恢复
+                        if (isMonitoringActive) {
+                            console.log('页面重新可见，恢复性能监控');
+                            startPerformanceUpdates();
+                        }
+                    }
+                }, false);
+            }
+        }
+
+        // 页面卸载时停止监控
+        window.addEventListener('beforeunload', function() {
+            stopPerformanceUpdates();
+        });
+
+        // 加载性能数据
+        function loadPerformanceData() {
+            if (!isMonitoringActive) return;
+
+            fetch('/api/performance')
+                .then(response => response.json())
+                .then(data => {
+                    updatePerformanceDisplay(data);
+                })
+                .catch(error => {
+                    console.error('Failed to load performance data:', error);
+                    // 如果连续失败，可能需要停止监控
+                    if (error.name === 'TypeError' || error.message.includes('fetch')) {
+                        console.log('网络错误，停止性能监控');
+                        stopPerformanceUpdates();
+                        showAlert('网络连接异常，已停止性能监控', 'warning');
+                    }
+                });
+        }
+
+        // 加载性能数据
+        function loadPerformanceData() {
+            fetch('/api/performance')
+                .then(response => response.json())
+                .then(data => {
+                    updatePerformanceDisplay(data);
+                })
+                .catch(error => {
+                    console.error('Failed to load performance data:', error);
+                });
+        }
+
+        // 更新性能显示
+        function updatePerformanceDisplay(data) {
+            if (data.error) {
+                console.error('Performance data error:', data.error);
+                return;
+            }
+
+            const metrics = data.current_metrics;
+
+            // 更新健康评分
+            document.getElementById('health-score').textContent = data.health_score.toFixed(1);
+
+            // 更新主要指标
+            if (metrics.cpu) {
+                document.getElementById('cpu-percent').textContent = metrics.cpu.percent.toFixed(1) + '%';
+            }
+            if (metrics.memory) {
+                document.getElementById('memory-percent').textContent = metrics.memory.percent.toFixed(1) + '%';
+            }
+            if (metrics.disk) {
+                document.getElementById('disk-percent').textContent = metrics.disk.percent.toFixed(1) + '%';
+            }
+
+            // 更新详细指标
+            updateSystemDetails(metrics);
+
+            // 更新告警列表
+            updateAlertsList(data.alerts);
+
+            // 更新图表数据
+            updatePerformanceChart(metrics);
+        }
+
+        // 更新系统详情
+        function updateSystemDetails(metrics) {
+            const detailsDiv = document.getElementById('system-details');
+            detailsDiv.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>CPU信息</h6>
+                        <p>使用率: ${metrics.cpu ? metrics.cpu.percent.toFixed(1) : 'N/A'}%</p>
+                        <p>负载: ${metrics.cpu && metrics.cpu.load_avg ? metrics.cpu.load_avg.join(', ') : 'N/A'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>内存信息</h6>
+                        <p>使用率: ${metrics.memory ? metrics.memory.percent.toFixed(1) : 'N/A'}%</p>
+                        <p>已用: ${metrics.memory ? metrics.memory.used_gb.toFixed(1) : 'N/A'} GB</p>
+                        <p>总量: ${metrics.memory ? metrics.memory.total_gb.toFixed(1) : 'N/A'} GB</p>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <h6>磁盘信息</h6>
+                        <p>使用率: ${metrics.disk ? metrics.disk.percent.toFixed(1) : 'N/A'}%</p>
+                        <p>已用: ${metrics.disk ? metrics.disk.used_gb.toFixed(1) : 'N/A'} GB</p>
+                        <p>总量: ${metrics.disk ? metrics.disk.total_gb.toFixed(1) : 'N/A'} GB</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>网络信息</h6>
+                        <p>发送: ${metrics.network ? metrics.network.bytes_sent_mb.toFixed(1) : 'N/A'} MB</p>
+                        <p>接收: ${metrics.network ? metrics.network.bytes_recv_mb.toFixed(1) : 'N/A'} MB</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 更新告警列表
+        function updateAlertsList(alerts) {
+            const alertsDiv = document.getElementById('alerts-list');
+            if (!alerts || alerts.length === 0) {
+                alertsDiv.innerHTML = '<p class="text-muted">暂无告警</p>';
+                return;
+            }
+
+            let html = '<div class="list-group">';
+            alerts.slice(-5).forEach(alert => {
+                const alertClass = alert.type.includes('high') ? 'danger' : 'warning';
+                html += `
+                    <div class="list-group-item list-group-item-${alertClass}">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">${alert.message}</h6>
+                            <small>${new Date(alert.timestamp).toLocaleTimeString()}</small>
+                        </div>
+                        <p class="mb-1">值: ${alert.value.toFixed(1)}, 阈值: ${alert.threshold}</p>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            alertsDiv.innerHTML = html;
+        }
+
+        // 更新性能图表
+        function updatePerformanceChart(metrics) {
+            const now = new Date();
+            const timeLabel = now.toLocaleTimeString();
+
+            // 添加新数据点
+            performanceData.labels.push(timeLabel);
+            performanceData.cpu.push(metrics.cpu ? metrics.cpu.percent : 0);
+            performanceData.memory.push(metrics.memory ? metrics.memory.percent : 0);
+            performanceData.disk.push(metrics.disk ? metrics.disk.percent : 0);
+
+            // 限制数据点数量
+            const maxPoints = 20;
+            if (performanceData.labels.length > maxPoints) {
+                performanceData.labels.shift();
+                performanceData.cpu.shift();
+                performanceData.memory.shift();
+                performanceData.disk.shift();
+            }
+
+            // 创建或更新图表
+            const ctx = document.getElementById('performance-chart').getContext('2d');
+            if (performanceChart) {
+                performanceChart.update();
+            } else {
+                performanceChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: performanceData.labels,
+                        datasets: [{
+                            label: 'CPU (%)',
+                            data: performanceData.cpu,
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1
+                        }, {
+                            label: '内存 (%)',
+                            data: performanceData.memory,
+                            borderColor: 'rgb(54, 162, 235)',
+                            tension: 0.1
+                        }, {
+                            label: '磁盘 (%)',
+                            data: performanceData.disk,
+                            borderColor: 'rgb(255, 205, 86)',
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // 加载性能报告
+        function loadPerformanceReport() {
+            const minutes = document.getElementById('report-period').value;
+            fetch(`/api/performance/report?minutes=${minutes}`)
+                .then(response => response.json())
+                .then(data => {
+                    displayPerformanceReport(data);
+                })
+                .catch(error => {
+                    console.error('Failed to load performance report:', error);
+                });
+        }
+
+        // 显示性能报告
+        function displayPerformanceReport(report) {
+            const reportDiv = document.getElementById('performance-report');
+            if (report.error) {
+                reportDiv.innerHTML = `<p class="text-danger">${report.error}</p>`;
+                return;
+            }
+
+            reportDiv.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>平均值 (最近${report.period_minutes}分钟)</h6>
+                        <p>CPU: ${report.averages.cpu_percent.toFixed(1)}%</p>
+                        <p>内存: ${report.averages.memory_percent.toFixed(1)}%</p>
+                        <p>磁盘: ${report.averages.disk_percent.toFixed(1)}%</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>峰值</h6>
+                        <p>CPU: ${report.peaks.cpu_percent.toFixed(1)}%</p>
+                        <p>内存: ${report.peaks.memory_percent.toFixed(1)}%</p>
+                        <p>磁盘: ${report.peaks.disk_percent.toFixed(1)}%</p>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <p><strong>趋势:</strong> ${report.trend}</p>
+                        <p><strong>告警数量:</strong> ${report.alerts_count}</p>
+                        <p><strong>数据点:</strong> ${report.data_points}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 页面切换时加载性能数据
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const page = this.getAttribute('data-page');
+                if (page === 'performance') {
+                    // 只加载一次数据，不自动启动监控
+                    loadPerformanceData();
+                    loadPerformanceReport();
+                    // 不自动调用 startPerformanceUpdates()
+                }
+            });
+        });
+
+        // 初始化用户活动监听和页面可见性监听
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSystemData();
+            socket.emit('start_monitoring');
+
+            // 设置用户活动监听
+            setupUserActivityListeners();
+
+            // 设置页面可见性监听
+            setupVisibilityChangeListener();
+        });
+    </script>
+</body>
+</html>
